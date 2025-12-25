@@ -84,7 +84,7 @@ def main():
                     inputs.append(client_sock)
 
                     # Send welcome message
-                    welcome_msg = "Welcome to the messenger server!"
+                    welcome_msg = "Welcome to the instant messenger!"
                     client_sock.send(welcome_msg.encode())
 
                 else:

@@ -4,8 +4,7 @@ import sys
 import os
 import time
 
-# Default Settings
-HOST = '0.0.0.0'  # Listen on all interfaces
+HOST = '0.0.0.0'
 DEFAULT_PORT = 12000
 BUFFER_SIZE = 4096
 
@@ -20,7 +19,6 @@ def main():
         print("Port must be an integer.")
         sys.exit(1)
 
-    # initialize server socket
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
@@ -32,21 +30,18 @@ def main():
         print(f"Error starting server: {e}")
         sys.exit(1)
 
-    # Sockets to monitor
     inputs = [server_socket]
     clients = {} # socket -> username
     groups = {}  # group_name -> set(sockets)
 
-    # Helper to broadcast messages (to all clients except sender)
     def broadcast_message(message, sender_socket=None):
-        for sock in clients: # Iterate over connected client sockets
+        for sock in clients:
             if sock != sender_socket:
                 try:
                     sock.send(message.encode())
                 except:
                     pass
 
-    # Helper to send to a specific group
     def group_message(group_name, message, sender_socket=None):
         if group_name in groups:
             for sock in groups[group_name]:
@@ -56,15 +51,13 @@ def main():
                     except:
                         pass
 
-    # Create SharedFiles directory if it doesn't exist
-    shared_files_dir = "SharedFiles"
-    # Or check environment variable as per spec: "You may consider using the environment variable SERVER_SHARED_FILES"
-    # We will use local folder for simplicity as it respects the spec "connect to 127.0.0.1".
+    # Utilise environment variable if set, otherwise default
+    shared_files_dir = os.environ.get('SERVER_SHARED_FILES', 'SharedFiles')
+
     if not os.path.exists(shared_files_dir):
         os.makedirs(shared_files_dir)
         print(f"Created {shared_files_dir} directory.")
 
-    # Create a dummy file for testing
     dummy_file = os.path.join(shared_files_dir, "welcome.txt")
     if not os.path.exists(dummy_file):
         with open(dummy_file, "w") as f:

@@ -8,7 +8,7 @@ Files Included:
 - SharedFiles: A directory containing files collectively shared by clients
 
 System Requirements:
-- Requires Python 3.x 
+- Requires Python 3.x
 - Windows OS
 
 ================================================
@@ -29,7 +29,7 @@ Messaging Commands:
         Sends a message to all other connected clients
 
     2. UNICAST MODE (Private Message)
-        Explicitly switch to mode with: /unicast <username> <message> 
+        Explicitly switch to mode with: /unicast <username> <message>
         Sends a message to a specific user
 
     3. GROUP MODE (Multicast)
@@ -43,7 +43,7 @@ Messaging Commands:
 File Transfer:
     1. LIST FILES:
         List the files in 'SharedFiles' and the total count: /list
-        
+
     2. DOWNLOAD VIA TCP:
         Download via TCP: /download <filename> TCP
         Downloaded files are saved to a folder named '<username>_files'
@@ -52,14 +52,21 @@ File Transfer:
     3. DOWNLOAD VIA UDP:
         Download via UDP: /download <filename> UDP
         Downloaded files are saved to a folder named '<username>_files'
-        Downloads using a differet set of sockets than messaging
+        Downloads using a different set of sockets than messaging
         Server uses a time.sleep(0.001) pause after sending each chunk of file
         So that buffer overflow (packet loss) does not occur at receiver
+
+        NOTE: UDP transfers are implemented as 'best-effort' without packet recovery.
+        On unreliable networks, large files may experience packet loss compared to the reliable TCP mode.
 
 Implementation Notes:
 - Server uses `select.select` for handling concurrent TCP connections efficiently
 - Client uses a separate `threading.Thread` to listen for incoming messages while the main thread waits for user input
 - Detailed status messages are printed on the Server console (connections, disconnections, message routing)
+
+----------------------------------------
+REQUIREMENTS CHECKLIST & IMPLEMENTATION DETAILS
+----------------------------------------
 
 WHEN CLIENT CONNECTS/DISCONNECTS FROM SERVER:
 9.  On the Server: print where connection from (IP+Port)

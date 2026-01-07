@@ -5,7 +5,7 @@ import os
 import time
 
 BUFFER_SIZE = 4096
-# Helper to receive bytes exactly (for TCP file transfer)
+
 def recv_all(sock, n):
     data = b''
     while len(data) < n:
@@ -16,22 +16,14 @@ def recv_all(sock, n):
     return data
 
 def receive_messages(sock, username):
-    """
-    Thread function to listen for incoming messages from the server.
-    """
     while True:
         try:
-            # We peak or read the message.
-            # Since files are strictly initiated by a command, we can try to rely on headers.
-            # However, if we are inside this loop, we are reading general messages.
-            # If the server sends a FILE_START_TCP header, we need to handle it.
-
             message = sock.recv(BUFFER_SIZE)
             if not message:
                 print("\nDisconnected from server.")
                 break
 
-            decoded = message.decode(errors='ignore') # Ignore errors if we accidentally got binary data
+            decoded = message.decode(errors='ignore')
 
             if decoded.startswith("FILE_START_TCP "):
                 # Format: FILE_START_TCP <filename> <size>

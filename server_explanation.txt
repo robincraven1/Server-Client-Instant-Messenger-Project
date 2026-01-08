@@ -24,152 +24,158 @@ A default port number constant (though the actual port is usually read from argu
 11: def main():
 Defines the main entry point function.
 
-12: if len(sys.argv) != 2:
+12: """
+13: Initializes the server, binds ports, and starts the infinite loop for
+14: handling client connections and messages via select.select().
+15: """
+Docstring explaining the main function's purpose.
+
+16: if len(sys.argv) != 2:
 Checks if the user provided the port number argument.
 
-16: try:
+20: try:
 Starts a try-block to handle potential errors when parsing the port.
 
-17: port = int(sys.argv[1])
+21: port = int(sys.argv[1])
 Tries to convert the second command-line argument to an integer port.
 
-22: server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+26: server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 Creates the main TCP server socket.
 
-23: server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+27: server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 Sets a socket option to allow reusing the address instantly after the server stops (prevents "Address already in use" errors during testing).
 
-26: server_socket.bind((HOST, port))
+30: server_socket.bind((HOST, port))
 Binds the socket to the host address and port.
 
-27: server_socket.listen(5)
+31: server_socket.listen(5)
 Starts listening for incoming connections. The argument '5' is the backlog queue size.
 
-33: inputs = [server_socket]
+37: inputs = [server_socket]
 Initializes a list 'inputs' with the server socket. This list is passed to 'select' to control which sockets to watch for incoming data.
 
-34: clients = {} # socket -> username
+38: clients = {} # socket -> username
 Dictionary mapping client socket objects to their usernames.
 
-35: groups = {}  # group_name -> set(sockets)
+39: groups = {}  # group_name -> set(sockets)
 Dictionary mapping group names to a set of sockets (users) belonging to that group.
 
-37: def broadcast_message(message, sender_socket=None):
+41: def broadcast_message(message, sender_socket=None):
 Helper function to send a message to all connected clients.
 
-38: for sock in clients:
+42: for sock in clients:
 Iterates through all connected client sockets.
 
-39: if sock != sender_socket:
+43: if sock != sender_socket:
 Ensures the message is not echoed back to the sender.
 
-41: sock.send(message.encode())
+45: sock.send(message.encode())
 Sends the encoded bytes of the message to the client.
 
-45: def group_message(group_name, message, sender_socket=None):
+49: def group_message(group_name, message, sender_socket=None):
 Helper function to send a message only to members of a specific group.
 
-55: shared_files_dir = os.environ.get('SERVER_SHARED_FILES', 'SharedFiles')
+59: shared_files_dir = os.environ.get('SERVER_SHARED_FILES', 'SharedFiles')
 Checks the environment variable 'SERVER_SHARED_FILES'. If set, uses that path; otherwise defaults to 'SharedFiles'.
 
-57: if not os.path.exists(shared_files_dir):
+61: if not os.path.exists(shared_files_dir):
 Checks if the directory exists.
 
-58: os.makedirs(shared_files_dir)
+62: os.makedirs(shared_files_dir)
 Creates the directory if it's missing.
 
-68: while True:
+72: while True:
 The main infinite server loop.
 
-70: readable, _, exceptional = select.select(inputs, [], inputs)
+74: readable, _, exceptional = select.select(inputs, [], inputs)
 The core 'select' call. It blocks until one of the sockets in 'inputs' is ready to be read. 'readable' will contain the list of sockets that have data waiting (or new connections).
 
-72: for s in readable:
+76: for s in readable:
 Iterates over each socket that has activity.
 
-73: if s is server_socket:
+77: if s is server_socket:
 If the active socket is the main server_socket, it means a NEW client is trying to connect.
 
-75: client_sock, client_addr = server_socket.accept()
+79: client_sock, client_addr = server_socket.accept()
 Accepts the new connection, returning a new socket object for that client and their address.
 
-77: inputs.append(client_sock)
+81: inputs.append(client_sock)
 Adds the new client socket to the 'inputs' list so 'select' will monitor it in the next loop iteration.
 
-81: client_sock.send(welcome_msg.encode())
+85: client_sock.send(welcome_msg.encode())
 Sends the welcome message to the new client.
 
-83: else:
+87: else:
 If the active socket is NOT the server_socket, it means an existing client sent data.
 
-86: data = s.recv(BUFFER_SIZE)
+90: data = s.recv(BUFFER_SIZE)
 Receives the data from the client.
 
-87: if data:
+91: if data:
 If data is not empty, process the message.
 
-88: msg = data.decode().strip()
+92: msg = data.decode().strip()
 Decodes the bytes to string and strips whitespace.
 
-92: if msg.startswith("JOIN "):
+96: if msg.startswith("JOIN "):
 Checks for the JOIN protocol command.
 
-94: clients[s] = username
+98: clients[s] = username
 Registers the username in the 'clients' dictionary.
 
-103: if msg.startswith("BROADCAST "):
+107: if msg.startswith("BROADCAST "):
 Handles broadcast command.
 
-106: broadcast_message(f"[Broadcast] {username}: {content}", sender_socket=s)
+110: broadcast_message(f"[Broadcast] {username}: {content}", sender_socket=s)
 Calls the helper to broadcast.
 
-108: elif msg.startswith("UNICAST "):
+112: elif msg.startswith("UNICAST "):
 Handles unicast logic. Find target socket and send only to them.
 
-154: elif msg == "LIST_FILES":
+158: elif msg == "LIST_FILES":
 Handles file listing request.
 
-155: files = os.listdir(shared_files_dir)
+159: files = os.listdir(shared_files_dir)
 Lists files in the directory using 'os.listdir'.
 
-159: elif msg.startswith("DOWNLOAD_TCP "):
+163: elif msg.startswith("DOWNLOAD_TCP "):
 Handles TCP download request.
 
-167: time.sleep(0.1)
+171: time.sleep(0.1)
 A small pause to allow the client to process the 'FILE_START_TCP' header before the raw file bytes arrive. This helps avoid the header and body getting stuck in the same specific recv call on the client side.
 
-168: with open(file_path, "rb") as f:
+172: with open(file_path, "rb") as f:
 Opens the requested file in read-binary mode.
 
-169: while True:
+173: while True:
 Starts loop to read file chunks.
 
-170: bytes_read = f.read(BUFFER_SIZE)
+174: bytes_read = f.read(BUFFER_SIZE)
 Reads a chunk of the file.
 
-173: s.send(bytes_read)
+177: s.send(bytes_read)
 Sends that chunk over the existing TCP socket 's'.
 
-178: elif msg.startswith("DOWNLOAD_UDP "):
+182: elif msg.startswith("DOWNLOAD_UDP "):
 Handles UDP download request.
 
-190: udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+194: udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 Creates a temporary UDP socket specifically for this transfer.
 
-191: client_ip = s.getpeername()[0]
+195: client_ip = s.getpeername()[0]
 Gets the client's IP address from their TCP connection.
 
-199: udp_sock.sendto(chunk, (client_ip, udp_port))
+203: udp_sock.sendto(chunk, (client_ip, udp_port))
 Sends the file chunk to the client's IP and the specified UDP port using 'sendto'.
 
-200: time.sleep(0.001)
+204: time.sleep(0.001)
 A tiny sleep prevents the loop from sending packets faster than the network buffer can handle, which reduces packet loss (aka 'throttling').
 
-211: inputs.remove(s)
+215: inputs.remove(s)
 If client disconnects (data is empty), remove socket from monitoring list.
 
-216: s.close()
+220: s.close()
 Close the socket.
 
-269: server_socket.close()
+273: server_socket.close()
 Closes the main server socket when the loop ends.

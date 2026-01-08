@@ -18,212 +18,206 @@ Imports the 'time' library, used later for adding small delays (sleep) if needed
 7: BUFFER_SIZE = 4096
 Defines a constant for the maximum amount of data (in bytes) to receive at once from a socket.
 
-9: def recv_all(sock, n):
-Defines a function 'recv_all' that takes a socket object and an integer 'n'.
-
-10: data = b''
-Initializes an empty bytes object 'data' to store the received bytes.
-
-11: while len(data) < n:
-Starts a loop that continues until the length of 'data' is equal to 'n' (the expected number of bytes).
-
-12: packet = sock.recv(n - len(data))
-Attempts to receive exactly the remaining required bytes from the socket.
-
-13: if not packet:
-Checks if 'packet' is empty. If socket.recv returns 0 bytes, it means the connection was closed.
-
-14: return None
-Returns None to indicate that the connection closed before all bytes were received.
-
-15: data += packet
-Appends the received chunk ('packet') to the total 'data' buffer.
-
-16: return data
-Returns the complete block of 'n' bytes.
-
-18: def receive_messages(sock, username):
+11: def receive_messages(sock, username):
 Defines the function to run in a separate thread. It takes the client socket and username as arguments.
 
-19: while True:
+12: """
+13: Continually listens for messages from the server in a separate thread.
+14: Handles both chat messages and file transfer (TCP/UDP) initiation headers.
+15: """
+Docstring explaining the function's responsibility.
+
+16: while True:
 Starts an infinite loop to continuously listen for incoming messages from the server.
 
-20: try:
+17: try:
 Starts a try-block to catch any network errors (like disconnection) without crashing immediately.
 
-21: message = sock.recv(BUFFER_SIZE)
+18: message = sock.recv(BUFFER_SIZE)
 Blocking call that waits to receive data from the server. It receives up to 4096 bytes.
 
-22: if not message:
+19: if not message:
 Checks if the received data is empty, which indicates the server closed the connection.
 
-23: print("\nDisconnected from server.")
+20: print("\nDisconnected from server.")
 Prints a message to the user indicating disconnection.
 
-24: break
+21: break
 Breaks out of the while loop to stop listening.
 
-26: decoded = message.decode(errors='ignore')
+23: decoded = message.decode(errors='ignore')
 Decodes the received bytes into a string using UTF-8. 'errors=ignore' prevents crashes if binary file data is accidentally interpreted as text.
 
-28: if decoded.startswith("FILE_START_TCP "):
+25: if decoded.startswith("FILE_START_TCP "):
 Checks if the message is a special protocol header indicating the start of a TCP file download.
 
-30: parts = decoded.split(" ", 2)
+27: parts = decoded.split(" ", 2)
 Splits the message string by spaces into at most 3 parts: Command, Filename, Size.
 
-31: filename = parts[1]
+28: filename = parts[1]
 Extracts the filename from the split parts.
 
-32: size = int(parts[2])
+29: size = int(parts[2])
 Extracts the file size and converts it to an integer.
 
-33: print(f"\nReceiving file '{filename}' ({size} bytes) via TCP...")
+30: print(f"\nReceiving file '{filename}' ({size} bytes) via TCP...")
 Notifies the user that a file transfer is starting.
 
-41: download_dir = f"{username}_files"
+38: download_dir = f"{username}_files"
 Constructs a directory name based on the current user's username (e.g., 'Alice_files').
 
-42: if not os.path.exists(download_dir):
+39: if not os.path.exists(download_dir):
 Checks if this directory already exists.
 
-43: os.makedirs(download_dir)
+40: os.makedirs(download_dir)
 Creates the directory if it does not exist.
 
-45: file_path = os.path.join(download_dir, filename)
+42: file_path = os.path.join(download_dir, filename)
 Creates the full path where the file will be saved (e.g., 'Alice_files/welcome.txt').
 
-53: remaining = size
+50: remaining = size
 Initializes a counter 'remaining' with the total file size to track how many bytes are left to read.
 
-54: with open(file_path, "wb") as f:
+51: with open(file_path, "wb") as f:
 Opens the target file in 'write binary' mode ('wb'). 'with' ensures it closes automatically.
 
-55: while remaining > 0:
+52: while remaining > 0:
 Loops until there are no remaining bytes to download.
 
-56: chunk_size = min(remaining, BUFFER_SIZE)
+53: chunk_size = min(remaining, BUFFER_SIZE)
 Determines the next read size: either the full buffer size or just the remaining bytes if less than buffer.
 
-57: data = sock.recv(chunk_size)
+54: data = sock.recv(chunk_size)
 Reads the calculated chunk size from the socket.
 
-58: if not data:
+55: if not data:
 Checks if data is empty (connection lost).
 
-60: break
+57: break
 Breaks the download loop.
 
-61: f.write(data)
+58: f.write(data)
 Writes the received chunk to the file.
 
-62: remaining -= len(data)
+59: remaining -= len(data)
 Decrements the 'remaining' counter by the actual number of bytes received.
 
-64: print(f"File '{filename}' downloaded successfully to {download_dir}.")
+61: print(f"File '{filename}' downloaded successfully to {download_dir}.")
 Prints success message after loop finishes.
 
-68: elif decoded.startswith("FILE_START_UDP "):
+65: elif decoded.startswith("FILE_START_UDP "):
 Checks if the message is a header for a UDP file transfer start.
 
-71: parts = decoded.split(" ", 2)
+68: parts = decoded.split(" ", 2)
 Splits the message to extract filename and size.
 
-81: else:
+78: else:
 If the message is not a file header, it is a normal chat message.
 
-82: print(f"\n{decoded}")
+79: print(f"\n{decoded}")
 Prints the decoded message text.
 
-276: def receive_messages(sock, username):
+281: def receive_messages(sock, username):
 Start of the redefined functionality at the bottom of the file which handles the global variable PENDING_UDP_PORT.
 
-277: global PENDING_UDP_PORT
+282: global PENDING_UDP_PORT
 Declares use of the global variable.
 
-315: if PENDING_UDP_PORT:
+320: if PENDING_UDP_PORT:
 Checks if a UDP port was recorded as pending (from the main thread's /download command).
 
-317: t = threading.Thread(target=udp_receiver, args=(port, filename, size, username))
+322: t = threading.Thread(target=udp_receiver, args=(port, filename, size, username))
 Creates a new thread to run 'udp_receiver' so it doesn't block the main listener.
 
-318: t.start()
+323: t.start()
 Starts the UDP receiver thread.
 
-91: def udp_receiver(port, filename, expected_size, username):
+88: def udp_receiver(port, filename, expected_size, username):
 Defines a function to handle receiving a file over UDP.
 
-97: sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+89: """
+90: Listens on a UDP port for file data chunks and writes them to a file.
+91: Runs in a temporary thread spawned by the main listener.
+92: """
+Docstring explaining the UDP receiver thread.
+
+98: sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 Creates a new socket of type DGRAM (UDP).
 
-98: sock.bind(('0.0.0.0', port))
+99: sock.bind(('0.0.0.0', port))
 Binds the UDP socket to all interfaces and the specific port chosen earlier.
 
-99: sock.settimeout(5) # Timeout if no data
+100: sock.settimeout(5) # Timeout if no data
 Sets a 5-second timeout. If no packet arrives for 5 seconds, it stops listening.
 
-102: with open(file_path, "wb") as f:
+103: with open(file_path, "wb") as f:
 Opens the file for writing binary data.
 
-104: while received_bytes < expected_size:
+105: while received_bytes < expected_size:
 Loops until the full file size is received.
 
-105: data, _ = sock.recvfrom(2048)
+106: data, _ = sock.recvfrom(2048)
 Receives a UDP packet (up to 2048 bytes). Returns data and sender address (ignored).
 
-107: f.write(data)
+108: f.write(data)
 Writes the packet data to file.
 
-114: sock.close()
+115: sock.close()
 Closes the UDP socket.
 
-119: def main():
+120: def main():
 The main entry point of the script.
 
-120: if len(sys.argv) != 4:
+121: """
+122: Main client entry point. Connects to server, starts listener thread,
+123: and handles user input loop for sending commands.
+124: """
+Docstring structure for the main function.
+
+125: if len(sys.argv) != 4:
 Checks if the user provided exactly 4 arguments (script name + 3 args).
 
-133: client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+138: client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 Creates the main TCP client connection socket.
 
-136: client_socket.connect((hostname, port))
+141: client_socket.connect((hostname, port))
 Connects the socket to the server's hostname and port.
 
-138: client_socket.send(f"JOIN {username}".encode())
+143: client_socket.send(f"JOIN {username}".encode())
 Sends the initial 'JOIN' command with the username to register with the server.
 
-144: listener_thread = threading.Thread(target=receive_messages, args=(client_socket, username))
+149: listener_thread = threading.Thread(target=receive_messages, args=(client_socket, username))
 Creates the background thread to run 'receive_messages'.
 
-146: listener_thread.start()
+151: listener_thread.start()
 Starts the background thread.
 
-163: while True:
+168: while True:
 Main loop to handle user input.
 
-165: user_input = input("")
+170: user_input = input("")
 Waits for user to type a command.
 
-169: if user_input.startswith("/broadcast"):
+174: if user_input.startswith("/broadcast"):
 Checks if input is a broadcast command.
 
-175: client_socket.send(f"BROADCAST {parts[1]}".encode())
+180: client_socket.send(f"BROADCAST {parts[1]}".encode())
 Sends the broadcast protocol message to server.
 
-208: elif user_input.startswith("/download"):
+213: elif user_input.startswith("/download"):
 Checks for download command.
 
-230: client_socket.send(f"DOWNLOAD_UDP {filename} {udp_port}".encode())
+235: client_socket.send(f"DOWNLOAD_UDP {filename} {udp_port}".encode())
 Sends request to server for UDP download with the chosen port.
 
-240: PENDING_UDP_PORT = udp_port
+245: PENDING_UDP_PORT = udp_port
 Sets the global variable so the listener thread knows which port to listen on when the server confirms.
 
-247: client_socket.send("/exit".encode())
+252: client_socket.send("/exit".encode())
 Sends exit command to server.
 
-332: if __name__ == "__main__":
+337: if __name__ == "__main__":
 Checks if script is run directly (not imported).
 
-333: main()
+338: main()
 Calls the main function.

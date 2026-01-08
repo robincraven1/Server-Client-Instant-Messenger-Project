@@ -52,7 +52,7 @@ File Transfer:
     3. DOWNLOAD VIA UDP:
         Download via UDP: /download <filename> UDP
         Downloaded files are saved to a folder named '<username>_files'
-        Downloads using a different set of sockets than messaging
+        Downloads using a different set of sockets than when messaging
         Server uses a time.sleep(0.001) pause after sending each chunk of file
         So that buffer overflow (packet loss) does not occur at receiver
 
@@ -65,7 +65,7 @@ Implementation Notes:
 - Detailed status messages are printed on the Server console (connections, disconnections, message routing)
 
 ----------------------------------------
-REQUIREMENTS CHECKLIST & IMPLEMENTATION DETAILS
+IMPLEMENTATION DETAILS
 ----------------------------------------
 
 WHEN CLIENT CONNECTS/DISCONNECTS FROM SERVER:
